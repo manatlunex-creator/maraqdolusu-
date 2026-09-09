@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DİN Operativ Mərkəzi | Simulyator</title>
+    <style>
+        :root {
+            --bg-main: #0c1017;
+            --bg-secondary: #161b22;
+            --bg-card: #21262d;
+            --accent-blue: #1f6feb;
+            --accent-gold: #d4af37;
+            --text-main: #c9d1d9;
+            --text-bright: #ffffff;
+            --danger-red: #da3633;
+            --border-color: #30363d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* GİRİŞ EKRANI */
+        #login-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(10, 14, 20, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .login-card {
+            background: var(--bg-secondary);
+            border: 2px solid var(--accent-gold);
+            padding: 30px;
+            border-radius: 10px;
+            width: 380px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+        }
+
+        .login-card h2 {
+            color: var(--accent-gold);
+            margin-bottom: 5px;
+            font-size: 1.4rem;
+        }
+
+        .login-card h3 {
+            color: var(--text-main);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .login-card input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            color: var(--text-bright);
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .login-card button {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .login-card button:hover {
+            background: #388bfd;
+        }
+
+        /* ƏSAS İNTERFEYS */
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* YUXARI PANEL */
+        header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-title h1 {
+            font-size: 1.1rem;
+            color: var(--accent-gold);
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85rem;
+        }
+
+        .status-item {
+            background: var(--bg-card);
+            padding: 5px 12px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-item span {
+            color: var(--text-bright);
+            font-weight: bold;
+        }
+
+        /* İKİ SÜTUNLU DÜZƏLİŞ */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* SOL MENYU / ÇATLAR */
+        .sidebar {
+            width: 320px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: bold;
+            color: var(--accent-gold);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .chat-list {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .chat-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .chat-item:hover, .chat-item.active {
+            background: var(--bg-card);
+        }
+
+        .chat-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .chat-name {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--text-bright);
+        }
+
+        .chat-sub {
+            font-size: 0.75rem;
+            color: #8b949e;
+        }
+
+        .badge {
+            background: var(--danger-red);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .badge.active {
+            display: inline-block;
+        }
+
+        /* SAĞ ÇAT VƏ İDARƏ PANELİ */
+        .chat-window {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-main);
+        }
+
+        .chat-header {
+            padding: 15px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header-details h3 {
+            font-size: 1rem;
+            color: var(--text-bright);
+        }
+
+        .chat-header-details p {
+            font-size: 0.8rem;
+            color: #8b949e;
+        }
+
+        .chat-actions button {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-bright);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .chat-actions button:hover {
+            border-color: var(--accent-gold);
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            position: relative;
+        }
+
+        .message.received {
+            background: var(--bg-card);
+            align-self: flex-start;
+            border: 1px solid var(--border-color);
+        }
+
+        .message.sent {
+            background: var(--accent-blue);
+            color: white;
+            align-self: flex-end;
+        }
+
+        .message-sender {
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: var(--accent-gold);
+        }
+
+        .chat-input-area {
+            padding: 15px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            padding: 10px 15px;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            color: var(--text-bright);
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .chat-input-area button {
+            padding: 10px 20px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* MODAL / KADR İDARƏETMƏSİ */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent-gold);
+            width: 500px;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            color: var(--accent-gold);
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .modal-body select, .modal-body input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 8px;
+            margin-bottom: 12px;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            color: var(--text-bright);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-footer button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-danger { background: var(--danger-red); color: white; }
+        .btn-success { background: #238636; color: white; }
+    </style>
+</head>
+<body>
+
+    <!-- GİRİŞ EKRANI -->
+    <div id="login-overlay">
+        <div class="login-card">
+            <h2>AZƏRBAYCAN RESPUBLİKASI</h2>
+            <h3>DAXİLİ İŞLƏR NAZİRLİYİ</h3>
+            <p style="font-size:0.8rem; color:#8b949e; margin-bottom:15px;">Xüsusi Şifrələnmiş Giriş Portalı</p>
+            <input type="text" id="login-user" placeholder="İstifadəçi Adı">
+            <input type="password" id="login-pass" placeholder="Məxfi Kod">
+            <button onclick="attemptLogin()">SİSTEMƏ DAXİL OL</button>
+            <p id="login-error" style="color:var(--danger-red); font-size:0.8rem; margin-top:10px; display:none;">İstifadəçi adı və ya kod yanlışdır!</p>
+        </div>
+    </div>
+
+    <!-- ƏSAS SİSTEM -->
+    <div id="app-container">
+        <header>
+            <div class="header-title">
+                <h1>DİN OPERATİV İDARƏETMƏ MƏRKƏZİ</h1>
+            </div>
+            <div class="status-bar">
+                <div class="status-item">Tarix/Saat: <span id="clock-display">00:00</span></div>
+                <div class="status-item">Rütbə: <span>General-Polkovnik</span></div>
+                <div class="status-item">Leqal Balans: <span id="balance-display">15,000 AZN</span></div>
+                <div class="status-item">Xüsusi Fond: <span id="black-balance-display">120,000 AZN</span></div>
+                <div class="status-item">Nüfuz (PA): <span id="rep-display">95%</span></div>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <!-- SOL MENYU / ÇAT SİYAHISI -->
+            <div class="sidebar">
+                <div class="sidebar-header">Strukturlar və Əlaqələr</div>
+                <div class="chat-list" id="chat-list-container">
+                    <!-- Dinamik Çatlar Bura Yüklənəcək -->
+                </div>
+            </div>
+
+            <!-- SAĞ ÇAT PƏNCƏRƏSİ -->
+            <div class="chat-window">
+                <div class="chat-header">
+                    <div class="chat-header-details">
+                        <h3 id="active-chat-title">Prezident Administrasiyası</h3>
+                        <p id="active-chat-sub">Məxfi Əlaqə Xətti</p>
+                    </div>
+                    <div class="chat-actions">
+                        <button onclick="openKadrModal()">Kadr İdarəetməsi</button>
+                    </div>
+                </div>
+
+                <div class="messages-container" id="messages-container">
+                    <!-- Mesajlar Bura Yüklənəcək -->
+                </div>
+
+                <div class="chat-input-area">
+                    <input type="text" id="message-input" placeholder="Əmr və ya mesajınızı yazın..." onkeypress="handleKeyPress(event)">
+                    <button onclick="sendMessage()">GÖNDƏR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KADR İDARƏETMƏ MODALI -->
+    <div class="modal" id="kadr-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Kadr Sərəncamı / Təyinat</h3>
+                <span style="cursor:pointer;" onclick="closeKadrModal()">✕</span>
+            </div>
+            <div class="modal-body">
+                <label>Mövcud Rəis / Zabit:</label>
+                <input type="text" id="modal-current-officer" readonly>
+                
+                <label>Qərar:</label>
+                <select id="modal-action">
+                    <option value="fire">Vəzifədən Azad Et (Sərəncama Al)</option>
+                    <option value="promote">Vaxtından Əvvəl Rütbə Ver</option>
+                    <option value="replace">Yeni Kadr Təyin Et</option>
+                </select>
+
+                <label id="new-name-label" style="display:none;">Yeni Kadrın Adı Soyadı:</label>
+                <input type="text" id="modal-new-name" style="display:none;" placeholder="Məs: Polkovnik Əli Əliyev">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-danger" onclick="closeKadrModal()">Ləğv Et</button>
+                <button class="btn-success" onclick="applyKadrChange()">Əmri İcra Et</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // MƏXFİ GİRİŞ MƏLUMATLARI
+        const AUTH_USER = "K9ESCOBAR211_";
+        const AUTH_PASS = "AA555_67";
+
+        // DİN STRUKTURLARI VƏ BOTLAR
+        const defaultChats = [
+            { id: "pa", name: "Prezident Administrasiyası", sub: "Ali Baş Komandanlıq", officer: "PA Şöbə Müdiri", badge: 1, history: [{ sender: "PA Şöbə Müdiri", text: "Cənab Nazir, ölkədəki ümumi asayişlə bağlı həftəlik hesabatı hazırlayın." }] },
+            { id: "1st_dep", name: "1-ci Müavin", sub: "Operativ İşlər Üzrə", officer: "General-leytenant İ. Məmmədov", badge: 0, history: [{ sender: "1-ci Müavin", text: "Cənab Nazir, bütün idarələr döyüş hazırlığı vəziyyətindədir. Əmrinizə hazırıq!" }] },
+            { id: "press", name: "DİN Mətbuat Xidməti", sub: "Media və İctimaiyyət", officer: "Polkovnik A. Zahidov", badge: 0, history: [{ sender: "Mətbuat Xidməti", text: "Son əməliyyatla bağlı jurnalistlərin sorğuları var. Bəyanat yayımlansın?" }] },
+            { id: "bdypi", name: "Baş Dövlət Yol Polisi İdarəsi", sub: "BDYPİ", officer: "General-mayor R. Zeynalov", badge: 0, history: [{ sender: "BDYPİ Rəisi", text: "Respublika yollarında xüsusi reydlər davam edir." }] },
+            { id: "bca", name: "Baş Cinayət Axtarış İdarəsi", sub: "BCAİ", officer: "General-mayor K. Qasımov", badge: 0, history: [{ sender: "BCAİ Rəisi", text: "Axtarışda olan 3 təhlükəli cinayətkarın yeri müəyyən edilib." }] },
+            { id: "bit", name: "Baş İctimai Təhlükəsizlik İdarəsi", sub: "BİTİ", officer: "Polkovnik T. Həsənov", badge: 0, history: [{ sender: "BİTİ Rəisi", text: "Kütləvi tədbirlərdə təhlükəsizlik tədbirləri gücləndirildi." }] },
+            { id: "bnm", name: "Baş Narkotiklərlə Mübarizə İdarəsi", sub: "BNMİ", officer: "General-mayor F. Əliyev", badge: 0, history: [{ sender: "BNMİ Rəisi", text: "Sərhədyanı zonada 50 kq narkotik vasitə müsadirə olundu." }] },
+            { id: "cpa", name: "Əlahiddə Çevik Polis Alayı", sub: "ÇPA", officer: "Polkovnik E. Hüseynov", badge: 0, history: [{ sender: "ÇPA Komandiri", text: "Alay казарма rejimindədir. İstənilən çağırışa hazırıq." }] },
+            { id: "academy", name: "Polis Akademiyası", sub: "Təhsil Mərkəzi", officer: "General-mayor N. Əhmədov", badge: 0, history: [{ sender: "Akademiya Rəisi", text: "Yeni kursant buraxılışı üçün imzanız gözlənilir." }] },
+            { id: "bspı", name: "Bakı Şəhər Baş Polis İdarəsi", sub: "BŞBPİ", officer: "General-leytenant S. Nəzərov", badge: 0, history: [{ sender: "BŞBPİ Rəisi", text: "Paytaxtda gecə növbətçiliyi sakit keçdi." }] },
+            { id: "dating_1", name: "Leman (XİN Əməkdaşı)", sub: "Şəxsi Əlaqə", officer: "Diplomat", badge: 1, history: [{ sender: "Leman", text: "Aleykum salam cənab Nazir. Bu axşam şam yeməyi təklifiniz hələ də qüvvədədir? 😊" }] }
+        ];
+
+        let state = {
+            loggedIn: false,
+            activeChatId: "pa",
+            chats: defaultChats,
+            balance: 15000,
+            blackBalance: 120000,
+            rep: 95
+        };
+
+        // YADDAŞDAN YÜKLƏMƏ
+        function loadState() {
+            const saved = localStorage.getItem("din_sim_state");
+            if (saved) {
+                state = JSON.parse(saved);
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem("din_sim_state", JSON.stringify(state));
+        }
+
+        // GİRİŞ LOQİKASI
+        function attemptLogin() {
+            const u = document.getElementById("login-user").value;
+            const p = document.getElementById("login-pass").value;
+
+            if (u === AUTH_USER && p === AUTH_PASS) {
+                state.loggedIn = true;
+                document.getElementById("login-overlay").style.display = "none";
+                saveState();
+                initApp();
+            } else {
+                document.getElementById("login-error").style.display = "block";
+            }
+        }
+
+        function initApp() {
+            renderChatList();
+            renderActiveChat();
+            startClock();
+            updateHeader();
+        }
+
+        // YUXARI PANEL VƏ SAAT
+        function startClock() {
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById("clock-display").innerText = now.toLocaleTimeString('az-AZ');
+            }, 1000);
+        }
+
+        function updateHeader() {
+            document.getElementById("balance-display").innerText = state.balance.toLocaleString() + " AZN";
+            document.getElementById("black-balance-display").innerText = state.blackBalance.toLocaleString() + " AZN";
+            document.getElementById("rep-display").innerText = state.rep + "%";
+        }
+
+        // ÇAT SİYAHISINI RENDER ET
+        function renderChatList() {
+            const container = document.getElementById("chat-list-container");
+            container.innerHTML = "";
+
+            state.chats.forEach(chat => {
+                const item = document.createElement("div");
+                item.className = `chat-item ${chat.id === state.activeChatId ? 'active' : ''}`;
+                item.onclick = () => selectChat(chat.id);
+
+                item.innerHTML = `
+                    <div class="chat-info">
+                        <div class="chat-name">${chat.name}</div>
+                        <div class="chat-sub">${chat.officer}</div>
+                    </div>
+                    <div class="badge ${chat.badge > 0 ? 'active' : ''}">${chat.badge}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function selectChat(id) {
+            state.activeChatId = id;
+            const chat = state.chats.find(c => c.id === id);
+            if (chat) chat.badge = 0;
+            saveState();
+            renderChatList();
+            renderActiveChat();
+        }
+
+        // AKTİV ÇATI RENDER ET
+        function renderActiveChat() {
+            const chat = state.chats.find(c => c.id === state.activeChatId);
+            if (!chat) return;
+
+            document.getElementById("active-chat-title").innerText = chat.name;
+            document.getElementById("active-chat-sub").innerText = `${chat.sub} | Rəis: ${chat.officer}`;
+
+            const container = document.getElementById("messages-container");
+            container.innerHTML = "";
+
+            chat.history.forEach(msg => {
+                const msgDiv = document.createElement("div");
+                msgDiv.className = `message ${msg.sender === "Mən" ? 'sent' : 'received'}`;
+                
+                if (msg.sender !== "Mən") {
+                    msgDiv.innerHTML = `<div class="message-sender">${msg.sender}</div>${msg.text}`;
+                } else {
+                    msgDiv.innerText = msg.text;
+                }
+
+                container.appendChild(msgDiv);
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // MESAJ GÖNDƏRMƏ VƏ BOT CAVABI
+        function sendMessage() {
+            const input = document.getElementById("message-input");
+            const text = input.value.trim();
+            if (!text) return;
+
+            const chat = state.chats.find(c => c.id === state.activeChatId);
+            chat.history.push({ sender: "Mən", text: text });
+            input.value = "";
+
+            renderActiveChat();
+            saveState();
+
+            // BOT CAVABI SİMULYASİYASI
+            setTimeout(() => {
+                generateBotResponse(chat, text);
+            }, 1200);
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === "Enter") sendMessage();
+        }
+
+        function generateBotResponse(chat, userText) {
+            let responseText = "Oldu cənab Nazir, tapşırığınız dərhal icraya yönəldildi.";
+            
+            if (chat.id === "pa") {
+                responseText = "Təlimatınız Prezident Administrasiyasına məruzə edildi. Bütün addımlar nəzarətdədir.";
+            } else if (chat.id === "press") {
+                responseText = "Bəyanat layihəsi hazırlandı və rəsmi DİN saytında dərc edildi.";
+            } else if (chat.id === "dating_1") {
+                responseText = "Çox gözəl, səbırsızılıqla gözləyirəm! Məni xidməti maşınınızla götürəcəksiniz? 😉";
+            } else if (userText.toLowerCase().includes("rüşvət") || userText.toLowerCase().includes("pul")) {
+                responseText = "Cənab Nazir, xüsusi fondumuz üçün ayrılan 50,000 AZN məbləğində vəsait təhlükəsiz kanalla köçürüldü.";
+                state.blackBalance += 50000;
+                updateHeader();
+            }
+
+            chat.history.push({ sender: chat.officer, text: responseText });
+            saveState();
+            renderActiveChat();
+        }
+
+        // KADR İDARƏETMƏ MODALI
+        function openKadrModal() {
+            const chat = state.chats.find(c => c.id === state.activeChatId);
+            document.getElementById("modal-current-officer").value = chat.officer;
+            document.getElementById("kadr-modal").style.display = "flex";
+        }
+
+        function closeKadrModal() {
+            document.getElementById("kadr-modal").style.display = "none";
+        }
+
+        document.getElementById("modal-action").addEventListener("change", function(e) {
+            if (e.target.value === "replace") {
+                document.getElementById("new-name-label").style.display = "block";
+                document.getElementById("modal-new-name").style.display = "block";
+            } else {
+                document.getElementById("new-name-label").style.display = "none";
+                document.getElementById("modal-new-name").style.display = "none";
+            }
+        });
+
+        function applyKadrChange() {
+            const chat = state.chats.find(c => c.id === state.activeChatId);
+            const action = document.getElementById("modal-action").value;
+
+            if (action === "fire") {
+                chat.officer = "VAKANT (Sərəncamda)";
+                chat.history.push({ sender: "Sistem", text: "🔴 Bu kadr vəzifəsindən azad edilərək sərəncama götürüldü." });
+            } else if (action === "promote") {
+                chat.history.push({ sender: "Sistem", text: "⭐ Zabitin rütbəsi vaxtından əvvəl bir pillə qaldırıldı." });
+            } else if (action === "replace") {
+                const newName = document.getElementById("modal-new-name").value || "Polkovnik N. Əliyev";
+                chat.officer = newName;
+                chat.history.push({ sender: "Sistem", text: `🟢 Yeni kadr təyinatı: ${newName}` });
+            }
+
+            saveState();
+            renderChatList();
+            renderActiveChat();
+            closeKadrModal();
+        }
+
+        // BAŞLANĞIC YÜKLƏNMƏSİ
+        window.onload = function() {
+            loadState();
+            if (state.loggedIn) {
+                document.getElementById("login-overlay").style.display = "none";
+                initApp();
+            }
+        };
+    </script>
+</body>
+</html>
